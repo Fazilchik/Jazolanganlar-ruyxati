@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>McModHub — Jazolanganlar</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+<body>
+
+    <!-- =========================
+         BOSH SAHIFA
+    ========================== -->
+
+    <section
+        id="loginPage"
+        class="page login-page"
+    >
+
+        <div class="login-box">
+
+            <div class="logo">
+                McModHub
+            </div>
+
+            <div class="subtitle">
+                Jazolanganlar tizimi
+            </div>
+
+            <div class="login-buttons">
+
+                <button
+                    class="main-login-button"
+                    onclick="openUser()"
+                >
+                    👤 Foydalanuvchi
+                </button>
+
+                <button
+                    class="main-login-button"
+                    onclick="openAdminLogin()"
+                >
+                    🛡️ Boshqaruvchi
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         FOYDALANUVCHI SAHIFASI
+    ========================== -->
+
+    <section
+        id="userPage"
+        class="page hidden"
+    >
+
+        <header>
+
+            <div class="brand">
+
+                <div class="logo-small">
+                    McModHub
+                </div>
+
+                <div class="header-title">
+                    Jazolanganlar
+                </div>
+
+            </div>
+
+            <button
+                class="logout"
+                onclick="logout()"
+            >
+                Chiqish
+            </button>
+
+        </header>
+
+
+        <main>
+
+            <div class="page-title">
+
+                <h1>
+                    Jazolanganlar va ogohlantirilganlar
+                </h1>
+
+                <p>
+                    McModHub Telegram guruhidagi jazo tarixi
+                </p>
+
+            </div>
+
+
+            <!-- STATISTIKA -->
+
+            <div class="stats">
+
+                <div class="stat-card">
+
+                    <span id="totalUsers">
+                        0
+                    </span>
+
+                    <small>
+                        Jami jazolar
+                    </small>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span id="warningUsers">
+                        0
+                    </span>
+
+                    <small>
+                        Ogohlantirish
+                    </small>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span id="muteUsers">
+                        0
+                    </span>
+
+                    <small>
+                        Mute
+                    </small>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span id="banUsers">
+                        0
+                    </span>
+
+                    <small>
+                        Ban
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <!-- JADVAL -->
+
+            <div class="table-box">
+
+                <div class="table-header">
+
+                    <div>
+                        <h2>
+                            Jazo ro‘yxati
+                        </h2>
+
+                        <p>
+                            Foydalanuvchilar ko‘rishi mumkin bo‘lgan ma'lumotlar
+                        </p>
+                    </div>
+
+
+                    <input
+                        type="text"
+                        id="userSearch"
+                        placeholder="Username qidirish..."
+                        oninput="renderUserTable()"
+                    >
+
+                </div>
+
+
+                <div class="table-wrapper">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    #
+                                </th>
+
+                                <th>
+                                    Username
+                                </th>
+
+                                <th>
+                                    Sabab
+                                </th>
+
+                                <th>
+                                    Jazo
+                                </th>
+
+                                <th>
+                                    Muddat
+                                </th>
+
+                                <th>
+                                    Jazo soni
+                                </th>
+
+                                <th>
+                                    Sana va vaqt
+                                </th>
+
+                                <th>
+                                    Boshqaruvchi
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="userTable">
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </main>
+
+    </section>
+
+
+    <!-- =========================
+         ADMIN LOGIN
+    ========================== -->
+
+    <section
+        id="adminLoginPage"
+        class="page login-page hidden"
+    >
+
+        <div class="login-box">
+
+            <div class="logo">
+                McModHub
+            </div>
+
+            <div class="subtitle">
+                Boshqaruvchi paneli
+            </div>
+
+
+            <input
+                type="text"
+                id="adminUsername"
+                placeholder="Login"
+            >
+
+
+            <input
+                type="password"
+                id="adminPassword"
+                placeholder="Parol"
+            >
+
+
+            <button
+                class="login-submit"
+                onclick="adminLogin()"
+            >
+                Kirish
+            </button>
+
+
+            <button
+                class="back-button"
+                onclick="goHome()"
+            >
+                ← Orqaga
+            </button>
+
+
+            <p
+                id="loginError"
+                class="login-error"
+            ></p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         ADMIN PANEL
+    ========================== -->
+
+    <section
+        id="adminPage"
+        class="page hidden"
+    >
+
+        <header>
+
+            <div class="brand">
+
+                <div class="logo-small">
+                    McModHub
+                </div>
+
+                <div class="header-title">
+                    Boshqaruvchi paneli
+                </div>
+
+            </div>
+
+
+            <button
+                class="logout"
+                onclick="logout()"
+            >
+                Chiqish
+            </button>
+
+        </header>
+
+
+        <main>
+
+
+            <!-- ADMIN TITLE -->
+
+            <div class="admin-top">
+
+                <div>
+
+                    <h1>
+                        Dashboard
+                    </h1>
+
+                    <p>
+                        McModHub jazo tizimini boshqarish
+                    </p>
+
+                </div>
+
+
+                <button
+                    class="add-button"
+                    onclick="openAddPunishment()"
+                >
+                    + Jazo qo‘shish
+                </button>
+
+            </div>
+
+
+            <!-- ESLATMA -->
+
+            <div class="reminder">
+
+                <div class="reminder-icon">
+                    ⚠️
+                </div>
+
+                <div>
+
+                    <h3>
+                        Eslatma
+                    </h3>
+
+                    <p id="reminderText">
+                        3 yoki undan ko‘p ogohlantirish olgan foydalanuvchilar yo‘q.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- STATISTIKA -->
+
+            <div class="stats">
+
+                <div class="stat-card">
+
+                    <span id="adminTotal">
+                        0
+                    </span>
+
+                    <small>
+                        Jami jazo
+                    </small>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span id="adminWarnings">
+                        0
+                    </span>
+
+                    <small>
+                        Ogohlantirish
+                    </small>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span id="adminMutes">
+                        0
+                    </span>
+
+                    <small>
+                        Mute
+                    </small>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span id="adminBans">
+                        0
+                    </span>
+
+                    <small>
+                        Ban
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <!-- =========================
+                 JAZO FORMASI
+            ========================== -->
+
+            <div
+                id="addPunishment"
+                class="form-box hidden"
+            >
+
+                <div class="form-title">
+
+                    <div>
+
+                        <h2 id="formTitle">
+                            Yangi jazo qo‘shish
+                        </h2>
+
+                        <p>
+                            Foydalanuvchiga berilgan jazoni kiriting
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <input
+                    type="hidden"
+                    id="editId"
+                >
+
+
+                <div class="form-grid">
+
+
+                    <!-- USERNAME -->
+
+                    <div class="input-group">
+
+                        <label>
+                            Telegram username
+                        </label>
+
+                        <input
+                            type="text"
+                            id="username"
+                            placeholder="@username"
+                        >
+
+                    </div>
+
+
+                    <!-- JAZO -->
+
+                    <div class="input-group">
+
+                        <label>
+                            Jazo turi
+                        </label>
+
+                        <select
+                            id="punishmentType"
+                            onchange="updateDurationPlaceholder()"
+                        >
+
+                            <option value="Ogohlantirish">
+                                Ogohlantirish
+                            </option>
+
+                            <option value="Mute 1 soat">
+                                Mute — 1 soat
+                            </option>
+
+                            <option value="Mute 6 soat">
+                                Mute — 6 soat
+                            </option>
+
+                            <option value="Mute 12 soat">
+                                Mute — 12 soat
+                            </option>
+
+                            <option value="Mute 24 soat">
+                                Mute — 24 soat
+                            </option>
+
+                            <option value="Ban">
+                                Ban
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- SABAB -->
+
+                    <div class="input-group full">
+
+                        <label>
+                            Jazo sababi
+                        </label>
+
+                        <textarea
+                            id="reason"
+                            placeholder="Jazo berilishiga sabab bo‘lgan vaziyat..."
+                        ></textarea>
+
+                    </div>
+
+
+                    <!-- MUDDAT -->
+
+                    <div class="input-group">
+
+                        <label>
+                            Jazo muddati
+                        </label>
+
+                        <input
+                            type="text"
+                            id="punishmentDuration"
+                            placeholder="Avtomatik"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-buttons">
+
+                    <button
+                        class="save-button"
+                        onclick="savePunishment()"
+                    >
+                        💾 Saqlash
+                    </button>
+
+
+                    <button
+                        class="cancel-button"
+                        onclick="closeAddPunishment()"
+                    >
+                        Bekor qilish
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- =========================
+                 ADMIN JADVALI
+            ========================== -->
+
+            <div class="table-box">
+
+                <div class="table-header">
+
+                    <div>
+
+                        <h2>
+                            Barcha jazolar
+                        </h2>
+
+                        <p>
+                            Jazo ma'lumotlarini boshqarish
+                        </p>
+
+                    </div>
+
+
+                    <input
+                        type="text"
+                        id="adminSearch"
+                        placeholder="Username qidirish..."
+                        oninput="renderAdminTable()"
+                    >
+
+                </div>
+
+
+                <div class="table-wrapper">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    #
+                                </th>
+
+                                <th>
+                                    Username
+                                </th>
+
+                                <th>
+                                    Sabab
+                                </th>
+
+                                <th>
+                                    Jazo
+                                </th>
+
+                                <th>
+                                    Muddat
+                                </th>
+
+                                <th>
+                                    Jazo soni
+                                </th>
+
+                                <th>
+                                    Sana va vaqt
+                                </th>
+
+                                <th>
+                                    Boshqaruvchi
+                                </th>
+
+                                <th>
+                                    Amallar
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="adminTable">
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </main>
+
+    </section>
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
