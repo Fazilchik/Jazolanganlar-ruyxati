@@ -1,528 +1,239 @@
 <!DOCTYPE html>
 <html lang="uz">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <title>McModHub Jazolanganlar</title>
 
-    <title>McModHub — Jazolanganlar</title>
+    <link rel="stylesheet" href="style.css">
 
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-    <!-- =========================
-         BOSH SAHIFA
-    ========================== -->
+<div class="container">
 
-    <section
-        id="loginPage"
-        class="page login-page"
-    >
+    <!-- ================= USER PAGE ================= -->
 
-        <div class="login-box">
+    <section id="userPage" class="page active">
 
-            <div class="logo">
-                McModHub
+        <header>
+            <div>
+                <h1>McModHub</h1>
+                <p>Jazolanganlar tizimi</p>
             </div>
 
-            <div class="subtitle">
-                Jazolanganlar tizimi
+            <button class="admin-open" onclick="showPage('loginPage')">
+                Boshqaruvchi
+            </button>
+        </header>
+
+        <div class="hero">
+            <h2>Jazolangan foydalanuvchilar</h2>
+            <p>Telegram guruhidagi faol jazolar</p>
+        </div>
+
+        <div class="stats">
+
+            <div class="stat">
+                <span id="totalCount">0</span>
+                <small>Jami</small>
             </div>
 
-            <div class="login-buttons">
-
-                <button
-                    class="main-login-button"
-                    onclick="openUser()"
-                >
-                    👤 Foydalanuvchi
-                </button>
-
-                <button
-                    class="main-login-button"
-                    onclick="openAdminLogin()"
-                >
-                    🛡️ Boshqaruvchi
-                </button>
-
+            <div class="stat">
+                <span id="warningCount">0</span>
+                <small>Ogohlantirish</small>
             </div>
 
+            <div class="stat">
+                <span id="muteCount">0</span>
+                <small>Mute</small>
+            </div>
+
+            <div class="stat">
+                <span id="banCount">0</span>
+                <small>Ban</small>
+            </div>
+
+        </div>
+
+        <div class="search-box">
+            <input
+                id="searchInput"
+                type="text"
+                placeholder="Username yoki sabab bo'yicha qidirish..."
+                oninput="renderUserTable()"
+            >
+        </div>
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Sabab</th>
+                        <th>Jazo turi</th>
+                        <th>Muddati</th>
+                        <th>Kim berdi</th>
+                        <th>Jazo soni</th>
+                        <th>Sana va vaqt</th>
+                        <th>Holat</th>
+                    </tr>
+                </thead>
+
+                <tbody id="userTableBody"></tbody>
+
+            </table>
+
+        </div>
+
+        <div id="emptyMessage" class="empty">
+            Hozircha faol jazo mavjud emas.
         </div>
 
     </section>
 
 
-    <!-- =========================
-         FOYDALANUVCHI SAHIFASI
-    ========================== -->
+    <!-- ================= LOGIN ================= -->
 
-    <section
-        id="userPage"
-        class="page hidden"
-    >
-
-        <header>
-
-            <div class="brand">
-
-                <div class="logo-small">
-                    McModHub
-                </div>
-
-                <div class="header-title">
-                    Jazolanganlar
-                </div>
-
-            </div>
-
-            <button
-                class="logout"
-                onclick="logout()"
-            >
-                Chiqish
-            </button>
-
-        </header>
-
-
-        <main>
-
-            <div class="page-title">
-
-                <h1>
-                    Jazolanganlar va ogohlantirilganlar
-                </h1>
-
-                <p>
-                    McModHub Telegram guruhidagi jazo tarixi
-                </p>
-
-            </div>
-
-
-            <!-- STATISTIKA -->
-
-            <div class="stats">
-
-                <div class="stat-card">
-
-                    <span id="totalUsers">
-                        0
-                    </span>
-
-                    <small>
-                        Jami jazolar
-                    </small>
-
-                </div>
-
-
-                <div class="stat-card">
-
-                    <span id="warningUsers">
-                        0
-                    </span>
-
-                    <small>
-                        Ogohlantirish
-                    </small>
-
-                </div>
-
-
-                <div class="stat-card">
-
-                    <span id="muteUsers">
-                        0
-                    </span>
-
-                    <small>
-                        Mute
-                    </small>
-
-                </div>
-
-
-                <div class="stat-card">
-
-                    <span id="banUsers">
-                        0
-                    </span>
-
-                    <small>
-                        Ban
-                    </small>
-
-                </div>
-
-            </div>
-
-
-            <!-- JADVAL -->
-
-            <div class="table-box">
-
-                <div class="table-header">
-
-                    <div>
-                        <h2>
-                            Jazo ro‘yxati
-                        </h2>
-
-                        <p>
-                            Foydalanuvchilar ko‘rishi mumkin bo‘lgan ma'lumotlar
-                        </p>
-                    </div>
-
-
-                    <input
-                        type="text"
-                        id="userSearch"
-                        placeholder="Username qidirish..."
-                        oninput="renderUserTable()"
-                    >
-
-                </div>
-
-
-                <div class="table-wrapper">
-
-                    <table>
-
-                        <thead>
-
-                            <tr>
-
-                                <th>
-                                    #
-                                </th>
-
-                                <th>
-                                    Username
-                                </th>
-
-                                <th>
-                                    Sabab
-                                </th>
-
-                                <th>
-                                    Jazo
-                                </th>
-
-                                <th>
-                                    Muddat
-                                </th>
-
-                                <th>
-                                    Jazo soni
-                                </th>
-
-                                <th>
-                                    Sana va vaqt
-                                </th>
-
-                                <th>
-                                    Boshqaruvchi
-                                </th>
-
-                            </tr>
-
-                        </thead>
-
-
-                        <tbody id="userTable">
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </div>
-
-        </main>
-
-    </section>
-
-
-    <!-- =========================
-         ADMIN LOGIN
-    ========================== -->
-
-    <section
-        id="adminLoginPage"
-        class="page login-page hidden"
-    >
+    <section id="loginPage" class="page">
 
         <div class="login-box">
 
-            <div class="logo">
-                McModHub
-            </div>
+            <h1>McModHub</h1>
+            <p>Boshqaruvchi tizimiga kirish</p>
 
-            <div class="subtitle">
-                Boshqaruvchi paneli
-            </div>
+            <form onsubmit="loginAdmin(event)">
 
+                <input
+                    id="loginUsername"
+                    type="text"
+                    placeholder="Username"
+                    required
+                >
 
-            <input
-                type="text"
-                id="adminUsername"
-                placeholder="Login"
-            >
+                <input
+                    id="loginPassword"
+                    type="password"
+                    placeholder="Parol"
+                    required
+                >
 
+                <button type="submit">
+                    Kirish
+                </button>
 
-            <input
-                type="password"
-                id="adminPassword"
-                placeholder="Parol"
-            >
+            </form>
 
-
-            <button
-                class="login-submit"
-                onclick="adminLogin()"
-            >
-                Kirish
-            </button>
-
-
-            <button
-                class="back-button"
-                onclick="goHome()"
-            >
+            <button class="back-btn" onclick="showPage('userPage')">
                 ← Orqaga
             </button>
 
-
-            <p
-                id="loginError"
-                class="login-error"
-            ></p>
+            <div id="loginError" class="error"></div>
 
         </div>
 
     </section>
 
 
-    <!-- =========================
-         ADMIN PANEL
-    ========================== -->
+    <!-- ================= ADMIN PAGE ================= -->
 
-    <section
-        id="adminPage"
-        class="page hidden"
-    >
+    <section id="adminPage" class="page">
 
         <header>
 
-            <div class="brand">
-
-                <div class="logo-small">
-                    McModHub
-                </div>
-
-                <div class="header-title">
-                    Boshqaruvchi paneli
-                </div>
-
+            <div>
+                <h1>McModHub Admin</h1>
+                <p>Jazolarni boshqarish paneli</p>
             </div>
 
-
-            <button
-                class="logout"
-                onclick="logout()"
-            >
+            <button class="logout" onclick="logoutAdmin()">
                 Chiqish
             </button>
 
         </header>
 
 
-        <main>
+        <!-- WARNING ALERT -->
+
+        <div id="warningAlert" class="warning-alert">
+            ⚠️ <b>Diqqat!</b>
+            <span id="warningAlertText"></span>
+        </div>
 
 
-            <!-- ADMIN TITLE -->
+        <!-- STATISTICS -->
 
-            <div class="admin-top">
+        <div class="stats">
 
-                <div>
-
-                    <h1>
-                        Dashboard
-                    </h1>
-
-                    <p>
-                        McModHub jazo tizimini boshqarish
-                    </p>
-
-                </div>
-
-
-                <button
-                    class="add-button"
-                    onclick="openAddPunishment()"
-                >
-                    + Jazo qo‘shish
-                </button>
-
+            <div class="stat">
+                <span id="adminTotal">0</span>
+                <small>Faol jazolar</small>
             </div>
 
-
-            <!-- ESLATMA -->
-
-            <div class="reminder">
-
-                <div class="reminder-icon">
-                    ⚠️
-                </div>
-
-                <div>
-
-                    <h3>
-                        Eslatma
-                    </h3>
-
-                    <p id="reminderText">
-                        3 yoki undan ko‘p ogohlantirish olgan foydalanuvchilar yo‘q.
-                    </p>
-
-                </div>
-
+            <div class="stat">
+                <span id="adminWarnings">0</span>
+                <small>Ogohlantirishlar</small>
             </div>
 
-
-            <!-- STATISTIKA -->
-
-            <div class="stats">
-
-                <div class="stat-card">
-
-                    <span id="adminTotal">
-                        0
-                    </span>
-
-                    <small>
-                        Jami jazo
-                    </small>
-
-                </div>
-
-
-                <div class="stat-card">
-
-                    <span id="adminWarnings">
-                        0
-                    </span>
-
-                    <small>
-                        Ogohlantirish
-                    </small>
-
-                </div>
-
-
-                <div class="stat-card">
-
-                    <span id="adminMutes">
-                        0
-                    </span>
-
-                    <small>
-                        Mute
-                    </small>
-
-                </div>
-
-
-                <div class="stat-card">
-
-                    <span id="adminBans">
-                        0
-                    </span>
-
-                    <small>
-                        Ban
-                    </small>
-
-                </div>
-
+            <div class="stat">
+                <span id="adminMutes">0</span>
+                <small>Mutelar</small>
             </div>
 
+            <div class="stat">
+                <span id="adminBans">0</span>
+                <small>Banlar</small>
+            </div>
 
-            <!-- =========================
-                 JAZO FORMASI
-            ========================== -->
-
-            <div
-                id="addPunishment"
-                class="form-box hidden"
-            >
-
-                <div class="form-title">
-
-                    <div>
-
-                        <h2 id="formTitle">
-                            Yangi jazo qo‘shish
-                        </h2>
-
-                        <p>
-                            Foydalanuvchiga berilgan jazoni kiriting
-                        </p>
-
-                    </div>
-
-                </div>
+        </div>
 
 
-                <input
-                    type="hidden"
-                    id="editId"
-                >
+        <!-- ADD PUNISHMENT -->
 
+        <div class="card">
+
+            <h2 id="formTitle">Jazo qo‘shish</h2>
+
+            <form id="punishmentForm" onsubmit="savePunishment(event)">
+
+                <input type="hidden" id="editId">
 
                 <div class="form-grid">
 
-
-                    <!-- USERNAME -->
-
-                    <div class="input-group">
-
-                        <label>
-                            Telegram username
-                        </label>
+                    <div>
+                        <label>Telegram username</label>
 
                         <input
-                            type="text"
                             id="username"
+                            type="text"
                             placeholder="@username"
+                            required
                         >
-
                     </div>
 
 
-                    <!-- JAZO -->
+                    <div>
+                        <label>Jazo sababi</label>
 
-                    <div class="input-group">
-
-                        <label>
-                            Jazo turi
-                        </label>
-
-                        <select
-                            id="punishmentType"
-                            onchange="updateDurationPlaceholder()"
+                        <input
+                            id="reason"
+                            type="text"
+                            placeholder="Masalan: Reklama tarqatish"
+                            required
                         >
+                    </div>
+
+
+                    <div>
+                        <label>Jazo turi</label>
+
+                        <select id="punishmentType" onchange="updateDuration()">
 
                             <option value="Ogohlantirish">
                                 Ogohlantirish
@@ -553,36 +264,27 @@
                     </div>
 
 
-                    <!-- SABAB -->
+                    <div>
+                        <label>Muddati</label>
 
-                    <div class="input-group full">
-
-                        <label>
-                            Jazo sababi
-                        </label>
-
-                        <textarea
-                            id="reason"
-                            placeholder="Jazo berilishiga sabab bo‘lgan vaziyat..."
-                        ></textarea>
-
+                        <input
+                            id="duration"
+                            type="text"
+                            value="Doimiy"
+                            readonly
+                        >
                     </div>
 
 
-                    <!-- MUDDAT -->
-
-                    <div class="input-group">
-
-                        <label>
-                            Jazo muddati
-                        </label>
+                    <div>
+                        <label>Jazoni bergan</label>
 
                         <input
+                            id="moderator"
                             type="text"
-                            id="punishmentDuration"
-                            placeholder="Avtomatik"
+                            value="Fazilchik"
+                            required
                         >
-
                     </div>
 
                 </div>
@@ -590,123 +292,77 @@
 
                 <div class="form-buttons">
 
-                    <button
-                        class="save-button"
-                        onclick="savePunishment()"
-                    >
-                        💾 Saqlash
+                    <button type="submit" class="save-btn">
+                        <span id="saveText">Jazo qo‘shish</span>
                     </button>
 
-
                     <button
-                        class="cancel-button"
-                        onclick="closeAddPunishment()"
+                        type="button"
+                        class="cancel-edit"
+                        id="cancelEdit"
+                        onclick="cancelEdit()"
                     >
                         Bekor qilish
                     </button>
 
                 </div>
 
-            </div>
+            </form>
+
+        </div>
 
 
-            <!-- =========================
-                 ADMIN JADVALI
-            ========================== -->
+        <!-- ADMIN TABLE -->
 
-            <div class="table-box">
+        <div class="card">
 
-                <div class="table-header">
+            <div class="table-title">
 
-                    <div>
+                <h2>Jazolar</h2>
 
-                        <h2>
-                            Barcha jazolar
-                        </h2>
-
-                        <p>
-                            Jazo ma'lumotlarini boshqarish
-                        </p>
-
-                    </div>
-
-
-                    <input
-                        type="text"
-                        id="adminSearch"
-                        placeholder="Username qidirish..."
-                        oninput="renderAdminTable()"
-                    >
-
-                </div>
-
-
-                <div class="table-wrapper">
-
-                    <table>
-
-                        <thead>
-
-                            <tr>
-
-                                <th>
-                                    #
-                                </th>
-
-                                <th>
-                                    Username
-                                </th>
-
-                                <th>
-                                    Sabab
-                                </th>
-
-                                <th>
-                                    Jazo
-                                </th>
-
-                                <th>
-                                    Muddat
-                                </th>
-
-                                <th>
-                                    Jazo soni
-                                </th>
-
-                                <th>
-                                    Sana va vaqt
-                                </th>
-
-                                <th>
-                                    Boshqaruvchi
-                                </th>
-
-                                <th>
-                                    Amallar
-                                </th>
-
-                            </tr>
-
-                        </thead>
-
-
-                        <tbody id="adminTable">
-
-                        </tbody>
-
-                    </table>
-
-                </div>
+                <input
+                    id="adminSearch"
+                    type="text"
+                    placeholder="Qidirish..."
+                    oninput="renderAdminTable()"
+                >
 
             </div>
 
-        </main>
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Username</th>
+                            <th>Sabab</th>
+                            <th>Jazo</th>
+                            <th>Muddati</th>
+                            <th>Moderator</th>
+                            <th>Jazo soni</th>
+                            <th>Sana</th>
+                            <th>Amallar</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="adminTableBody"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
 
     </section>
 
+</div>
 
-    <script src="script.js"></script>
+
+<script src="script.js"></script>
 
 </body>
-
 </html>

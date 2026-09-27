@@ -1,1314 +1,786 @@
-/* =========================================
-   MC MOD HUB — JAZOLANGANLAR
-========================================= */
+// ======================================================
+// SUPABASE
+// ======================================================
 
+const SUPABASE_URL =
+    "https://ksakrfzasajcoffywpcj.supabase.co";
 
-/* =========================================
-   MA'LUMOTLARNI YUKLASH
-========================================= */
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_9vA0Q0ZbUrGZvbpuye56nQ_lGgB8jcg";
 
-let punishments =
-    JSON.parse(
-        localStorage.getItem(
-            "mcmodhub_punishments"
-        )
-    ) || [];
-
-
-/* =========================================
-   DEMO MA'LUMOT
-   Birinchi marta ochilganda chiqadi
-========================================= */
-
-if (punishments.length === 0) {
-
-    const now = Date.now();
-
-    punishments = [
-
-        {
-            id: now + 1,
-
-            username: "Steve",
-
-            reason: "Reklama tarqatish",
-
-            type: "Ogohlantirish",
-
-            duration: "—",
-
-            count: 1,
-
-            date: "27.09.2026 10:15",
-
-            createdAt: now - 3600000,
-
-            expiresAt: null,
-
-            moderator: "Fazilchik"
-        },
-
-
-        {
-            id: now + 2,
-
-            username: "Alex",
-
-            reason: "Qoidani buzish",
-
-            type: "Ogohlantirish",
-
-            duration: "—",
-
-            count: 1,
-
-            date: "27.09.2026 10:30",
-
-            createdAt: now - 3000000,
-
-            expiresAt: null,
-
-            moderator: "Fazilchik"
-        },
-
-
-        {
-            id: now + 3,
-
-            username: "Alex",
-
-            reason: "Spam",
-
-            type: "Ogohlantirish",
-
-            duration: "—",
-
-            count: 2,
-
-            date: "27.09.2026 10:45",
-
-            createdAt: now - 2500000,
-
-            expiresAt: null,
-
-            moderator: "Fazilchik"
-        },
-
-
-        {
-            id: now + 4,
-
-            username: "Alex",
-
-            reason: "Spamni takrorlash",
-
-            type: "Ogohlantirish",
-
-            duration: "—",
-
-            count: 3,
-
-            date: "27.09.2026 11:00",
-
-            createdAt: now - 2000000,
-
-            expiresAt: null,
-
-            moderator: "Fazilchik"
-        }
-
-    ];
-
-    saveData();
-}
-
-
-/* =========================================
-   LOCAL STORAGE
-========================================= */
-
-function saveData() {
-
-    localStorage.setItem(
-        "mcmodhub_punishments",
-        JSON.stringify(punishments)
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
     );
+
+
+// ======================================================
+// GLOBAL
+// ======================================================
+
+let punishments = [];
+
+
+// ======================================================
+// PAGE
+// ======================================================
+
+function showPage(pageId) {
+
+    document.querySelectorAll(".page").forEach(page => {
+        page.classList.remove("active");
+    });
+
+    document.getElementById(pageId).classList.add("active");
 }
 
 
-/* =========================================
-   ID YARATISH
-========================================= */
+// ======================================================
+// LOGIN
+// ======================================================
 
-function generateId() {
+async function loginAdmin(event) {
 
-    return Date.now() +
-        Math.floor(
-            Math.random() * 100000
-        );
-}
+    event.preventDefault();
 
+    const username =
+        document.getElementById("loginUsername").value.trim();
 
-/* =========================================
-   MUDDATNI MILLISEKUNDGA O‘GIRISH
-========================================= */
+    const password =
+        document.getElementById("loginPassword").value;
 
-function getDurationMs(type) {
+    const error =
+        document.getElementById("loginError");
 
-    switch (type) {
+    error.textContent = "";
 
-        case "Mute 1 soat":
-            return 1 * 60 * 60 * 1000;
+    // Foydalanuvchi username orqali kiradi.
+    // Supabase Auth ichida esa email ishlatiladi.
+    if (username !== "Fazilchik") {
 
-        case "Mute 6 soat":
-            return 6 * 60 * 60 * 1000;
+        error.textContent =
+            "Username yoki parol noto‘g‘ri.";
 
-        case "Mute 12 soat":
-            return 12 * 60 * 60 * 1000;
+        return;
+    }
 
-        case "Mute 24 soat":
-            return 24 * 60 * 60 * 1000;
+    const email = "fazilchik@mcmodhub.local";
 
-        default:
-            return null;
+    const { data, error: loginError } =
+        await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+    if (loginError) {
+
+        error.textContent =
+            "Username yoki parol noto‘g‘ri.";
+
+        return;
+    }
+
+    if (data.session) {
+
+        document.getElementById("loginUsername").value = "";
+        document.getElementById("loginPassword").value = "";
+
+        showPage("adminPage");
+
+        await loadPunishments();
     }
 }
 
 
-/* =========================================
-   MUDDAT NOMI
-========================================= */
+// ======================================================
+// LOGOUT
+// ======================================================
 
-function getDefaultDuration(type) {
+async function logoutAdmin() {
 
-    switch (type) {
+    await supabaseClient.auth.signOut();
 
-        case "Ogohlantirish":
-            return "—";
+    showPage("userPage");
 
-        case "Mute 1 soat":
-            return "1 soat";
+    await loadPunishments();
+}
 
-        case "Mute 6 soat":
-            return "6 soat";
 
-        case "Mute 12 soat":
-            return "12 soat";
+// ======================================================
+// LOAD DATA
+// ======================================================
 
-        case "Mute 24 soat":
-            return "24 soat";
+async function loadPunishments() {
 
-        case "Ban":
-            return "Doimiy";
+    const { data, error } =
+        await supabaseClient
+            .from("punishments")
+            .select("*")
+            .order("issued_at", {
+                ascending: false
+            });
 
-        default:
-            return "—";
+    if (error) {
+
+        console.error(error);
+
+        alert(
+            "Ma'lumotlarni yuklashda xatolik yuz berdi."
+        );
+
+        return;
     }
-}
 
+    punishments = data || [];
 
-/* =========================================
-   MUDDATI TUGAGAN JAZOLARNI O‘CHIRISH
-========================================= */
+    // Muddati tugagan jazolarni statusini expired qilamiz.
+    await expirePunishments();
 
-function removeExpiredPunishments() {
+    // Yangilangan ma'lumotlarni qayta olish
+    const { data: freshData } =
+        await supabaseClient
+            .from("punishments")
+            .select("*")
+            .order("issued_at", {
+                ascending: false
+            });
 
-    const currentTime =
-        Date.now();
-
-
-    const oldLength =
-        punishments.length;
-
-
-    punishments =
-        punishments.filter(
-            item => {
-
-                /*
-                    Ogohlantirish va Ban
-                    uchun expiresAt yo‘q.
-                */
-
-                if (
-                    !item.expiresAt
-                ) {
-                    return true;
-                }
-
-
-                /*
-                    Muddati hali tugamagan.
-                */
-
-                return (
-                    item.expiresAt >
-                    currentTime
-                );
-
-            }
-        );
-
-
-    if (
-        punishments.length !==
-        oldLength
-    ) {
-
-        saveData();
-
-    }
-}
-
-
-/* =========================================
-   HAR 1 SEKUNDA TEKSHIRISH
-========================================= */
-
-setInterval(
-    function () {
-
-        removeExpiredPunishments();
-
-
-        const adminPage =
-            document.getElementById(
-                "adminPage"
-            );
-
-
-        const userPage =
-            document.getElementById(
-                "userPage"
-            );
-
-
-        if (
-            adminPage &&
-            !adminPage.classList.contains(
-                "hidden"
-            )
-        ) {
-
-            renderAdminTable();
-
-            updateStats();
-
-            updateReminder();
-
-        }
-
-
-        if (
-            userPage &&
-            !userPage.classList.contains(
-                "hidden"
-            )
-        ) {
-
-            renderUserTable();
-
-        }
-
-    },
-    1000
-);
-
-
-/* =========================================
-   BARCHA SAHIFALARNI YASHIRISH
-========================================= */
-
-function hideAllPages() {
-
-    document
-        .getElementById("loginPage")
-        .classList.add("hidden");
-
-
-    document
-        .getElementById("userPage")
-        .classList.add("hidden");
-
-
-    document
-        .getElementById("adminLoginPage")
-        .classList.add("hidden");
-
-
-    document
-        .getElementById("adminPage")
-        .classList.add("hidden");
-}
-
-
-/* =========================================
-   BOSH SAHIFA
-========================================= */
-
-function goHome() {
-
-    hideAllPages();
-
-
-    document
-        .getElementById("loginPage")
-        .classList.remove(
-            "hidden"
-        );
-}
-
-
-/* =========================================
-   FOYDALANUVCHI
-========================================= */
-
-function openUser() {
-
-    removeExpiredPunishments();
-
-    hideAllPages();
-
-
-    document
-        .getElementById("userPage")
-        .classList.remove(
-            "hidden"
-        );
-
+    punishments = freshData || [];
 
     renderUserTable();
 
+    renderAdminTable();
+
     updateStats();
+
+    updateWarningAlert();
 }
 
 
-/* =========================================
-   ADMIN LOGIN OCHISH
-========================================= */
+// ======================================================
+// EXPIRE PUNISHMENTS
+// ======================================================
 
-function openAdminLogin() {
+async function expirePunishments() {
 
-    hideAllPages();
+    const now = new Date();
 
+    const expiredIds = punishments
+        .filter(item => {
 
-    document
-        .getElementById("adminLoginPage")
-        .classList.remove(
-            "hidden"
-        );
+            if (!item.expires_at) {
+                return false;
+            }
 
+            if (item.status !== "active") {
+                return false;
+            }
 
-    document
-        .getElementById("adminUsername")
-        .value = "";
+            return new Date(item.expires_at) <= now;
 
+        })
+        .map(item => item.id);
 
-    document
-        .getElementById("adminPassword")
-        .value = "";
+    if (expiredIds.length === 0) {
+        return;
+    }
 
+    for (const id of expiredIds) {
 
-    document
-        .getElementById("loginError")
-        .textContent = "";
-}
-
-
-/* =========================================
-   ADMIN LOGIN
-========================================= */
-
-function adminLogin() {
-
-    const username =
-        document
-            .getElementById(
-                "adminUsername"
-            )
-            .value
-            .trim();
-
-
-    const password =
-        document
-            .getElementById(
-                "adminPassword"
-            )
-            .value;
-
-
-    if (
-        username === "Fazilchik" &&
-        password === "mcmodhub"
-    ) {
-
-        removeExpiredPunishments();
-
-        hideAllPages();
-
-
-        document
-            .getElementById("adminPage")
-            .classList.remove(
-                "hidden"
-            );
-
-
-        renderAdminTable();
-
-        updateStats();
-
-        updateReminder();
-
-    } else {
-
-        document
-            .getElementById(
-                "loginError"
-            )
-            .textContent =
-            "❌ Login yoki parol noto‘g‘ri!";
-
+        await supabaseClient
+            .from("punishments")
+            .update({
+                status: "expired"
+            })
+            .eq("id", id);
     }
 }
 
 
-/* =========================================
-   LOGOUT
-========================================= */
+// ======================================================
+// ACTIVE PUNISHMENTS
+// ======================================================
 
-function logout() {
+function getActivePunishments() {
 
-    goHome();
+    const now = new Date();
 
+    return punishments.filter(item => {
+
+        if (item.status !== "active") {
+            return false;
+        }
+
+        if (
+            item.expires_at &&
+            new Date(item.expires_at) <= now
+        ) {
+            return false;
+        }
+
+        return true;
+    });
 }
 
 
-/* =========================================
-   USER TABLE
-========================================= */
+// ======================================================
+// DATE
+// ======================================================
+
+function formatDate(date) {
+
+    if (!date) {
+        return "-";
+    }
+
+    return new Date(date).toLocaleString(
+        "uz-UZ",
+        {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
+}
+
+
+// ======================================================
+// ESCAPE HTML
+// ======================================================
+
+function escapeHTML(value) {
+
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+// ======================================================
+// PUNISHMENT COUNT
+// ======================================================
+
+function getPunishmentCount(username) {
+
+    return punishments.filter(item =>
+
+        item.username.toLowerCase() ===
+        username.toLowerCase()
+
+    ).length;
+}
+
+
+// ======================================================
+// USER TABLE
+// ======================================================
 
 function renderUserTable() {
 
-    removeExpiredPunishments();
+    const tbody =
+        document.getElementById("userTableBody");
 
-
-    const table =
-        document.getElementById(
-            "userTable"
-        );
-
+    const empty =
+        document.getElementById("emptyMessage");
 
     const search =
-        (
-            document
-                .getElementById(
-                    "userSearch"
-                )
-                ?.value || ""
-        )
+        document.getElementById("searchInput")
+            .value
             .toLowerCase()
-            .replace("@", "")
             .trim();
 
-
-    table.innerHTML = "";
-
+    const active =
+        getActivePunishments();
 
     const filtered =
-        punishments.filter(
-            item => {
+        active.filter(item => {
 
-                return item.username
+            return (
+                item.username
                     .toLowerCase()
-                    .includes(
-                        search
-                    );
+                    .includes(search)
 
-            }
-        );
+                ||
 
+                item.reason
+                    .toLowerCase()
+                    .includes(search)
 
-    if (
-        filtered.length === 0
-    ) {
+                ||
 
-        table.innerHTML = `
+                item.punishment_type
+                    .toLowerCase()
+                    .includes(search)
+            );
+        });
 
-            <tr>
+    tbody.innerHTML = "";
 
-                <td
-                    colspan="8"
-                    class="empty-table"
-                >
-                    Jazolar topilmadi.
-                </td>
+    if (filtered.length === 0) {
 
-            </tr>
-
-        `;
+        empty.style.display = "block";
 
         return;
+
+    } else {
+
+        empty.style.display = "none";
     }
 
 
-    filtered.forEach(
-        function (item, index) {
+    filtered.forEach(item => {
 
-            const className =
-                getPunishmentClass(
-                    item.type
-                );
+        const count =
+            getPunishmentCount(item.username);
 
+        const row =
+            document.createElement("tr");
 
-            table.innerHTML += `
+        row.innerHTML = `
 
-                <tr>
+            <td>
+                <b>${escapeHTML(item.username)}</b>
+            </td>
 
-                    <td>
-                        ${index + 1}
-                    </td>
+            <td>
+                ${escapeHTML(item.reason)}
+            </td>
 
+            <td>
+                ${getStatusHTML(item.punishment_type)}
+            </td>
 
-                    <td>
-                        <strong>
-                            @${escapeHTML(
-                                item.username
-                            )}
-                        </strong>
-                    </td>
+            <td>
+                ${escapeHTML(item.duration || "Doimiy")}
+            </td>
 
+            <td>
+                ${escapeHTML(item.moderator)}
+            </td>
 
-                    <td>
-                        ${escapeHTML(
-                            item.reason
-                        )}
-                    </td>
+            <td>
+                ${count} marta
+            </td>
 
+            <td>
+                ${formatDate(item.issued_at)}
+            </td>
 
-                    <td
-                        class="${className}"
-                    >
-                        ${escapeHTML(
-                            item.type
-                        )}
-                    </td>
+            <td>
+                <span class="status status-${getStatusClass(item.punishment_type)}">
+                    Faol
+                </span>
+            </td>
 
+        `;
 
-                    <td>
-                        ${escapeHTML(
-                            item.duration
-                        )}
-                    </td>
+        tbody.appendChild(row);
 
-
-                    <td>
-                        ${item.count}
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(
-                            item.date
-                        )}
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(
-                            item.moderator
-                        )}
-                    </td>
-
-                </tr>
-
-            `;
-
-        }
-    );
-
-
-    updateStats();
-
+    });
 }
 
 
-/* =========================================
-   ADMIN TABLE
-========================================= */
+// ======================================================
+// STATUS HTML
+// ======================================================
+
+function getStatusHTML(type) {
+
+    let className =
+        getStatusClass(type);
+
+    return `
+        <span class="status status-${className}">
+            ${escapeHTML(type)}
+        </span>
+    `;
+}
+
+
+function getStatusClass(type) {
+
+    if (type === "Ban") {
+        return "ban";
+    }
+
+    if (type.includes("Mute")) {
+        return "mute";
+    }
+
+    return "warning";
+}
+
+
+// ======================================================
+// ADMIN TABLE
+// ======================================================
 
 function renderAdminTable() {
 
-    removeExpiredPunishments();
+    const tbody =
+        document.getElementById("adminTableBody");
 
+    const searchInput =
+        document.getElementById("adminSearch");
 
-    const table =
-        document.getElementById(
-            "adminTable"
-        );
-
+    if (!tbody || !searchInput) {
+        return;
+    }
 
     const search =
-        (
-            document
-                .getElementById(
-                    "adminSearch"
-                )
-                ?.value || ""
-        )
+        searchInput.value
             .toLowerCase()
-            .replace("@", "")
             .trim();
 
-
-    table.innerHTML = "";
-
+    const active =
+        getActivePunishments();
 
     const filtered =
-        punishments.filter(
-            item => {
+        active.filter(item => {
 
-                return item.username
+            return (
+                item.username
                     .toLowerCase()
-                    .includes(
-                        search
-                    );
+                    .includes(search)
 
-            }
-        );
+                ||
 
+                item.reason
+                    .toLowerCase()
+                    .includes(search)
 
-    if (
-        filtered.length === 0
-    ) {
+                ||
 
-        table.innerHTML = `
+                item.punishment_type
+                    .toLowerCase()
+                    .includes(search)
 
-            <tr>
+                ||
 
-                <td
-                    colspan="9"
-                    class="empty-table"
-                >
-                    Jazolar topilmadi.
-                </td>
+                item.moderator
+                    .toLowerCase()
+                    .includes(search)
+            );
+        });
 
-            </tr>
+    tbody.innerHTML = "";
+
+    filtered.forEach(item => {
+
+        const count =
+            getPunishmentCount(item.username);
+
+        const row =
+            document.createElement("tr");
+
+        row.innerHTML = `
+
+            <td>
+                <b>${escapeHTML(item.username)}</b>
+            </td>
+
+            <td>
+                ${escapeHTML(item.reason)}
+            </td>
+
+            <td>
+                ${getStatusHTML(item.punishment_type)}
+            </td>
+
+            <td>
+                ${escapeHTML(item.duration || "Doimiy")}
+            </td>
+
+            <td>
+                ${escapeHTML(item.moderator)}
+            </td>
+
+            <td>
+                ${count} marta
+            </td>
+
+            <td>
+                ${formatDate(item.issued_at)}
+            </td>
+
+            <td>
+
+                <div class="action-buttons">
+
+                    <button
+                        class="edit-btn"
+                        onclick="editPunishment('${item.id}')"
+                    >
+                        Tahrirlash
+                    </button>
+
+                    <button
+                        class="delete-btn"
+                        onclick="deletePunishment('${item.id}')"
+                    >
+                        Bekor qilish
+                    </button>
+
+                </div>
+
+            </td>
 
         `;
 
-        return;
-    }
-
-
-    filtered.forEach(
-        function (item, index) {
-
-            const className =
-                getPunishmentClass(
-                    item.type
-                );
-
-
-            table.innerHTML += `
-
-                <tr>
-
-                    <td>
-                        ${index + 1}
-                    </td>
-
-
-                    <td>
-                        <strong>
-                            @${escapeHTML(
-                                item.username
-                            )}
-                        </strong>
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(
-                            item.reason
-                        )}
-                    </td>
-
-
-                    <td
-                        class="${className}"
-                    >
-                        ${escapeHTML(
-                            item.type
-                        )}
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(
-                            item.duration
-                        )}
-                    </td>
-
-
-                    <td>
-                        ${item.count}
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(
-                            item.date
-                        )}
-                    </td>
-
-
-                    <td>
-                        ${escapeHTML(
-                            item.moderator
-                        )}
-                    </td>
-
-
-                    <td>
-
-                        <div
-                            class="action-buttons"
-                        >
-
-                            <button
-                                class="action-button edit-btn"
-                                title="Tahrirlash"
-                                onclick="editPunishment(${item.id})"
-                            >
-                                ✏️
-                            </button>
-
-
-                            <button
-                                class="action-button cancel-punishment-btn"
-                                title="Jazoni bekor qilish"
-                                onclick="cancelPunishment(${item.id})"
-                            >
-                                ❌
-                            </button>
-
-                        </div>
-
-                    </td>
-
-                </tr>
-
-            `;
-
-        }
-    );
-
-
-    updateReminder();
-
-}
-
-
-/* =========================================
-   JAZO KLASSI
-========================================= */
-
-function getPunishmentClass(type) {
-
-    if (
-        type === "Ogohlantirish"
-    ) {
-
-        return "warning";
-
-    }
-
-
-    if (
-        type.includes("Mute")
-    ) {
-
-        return "mute";
-
-    }
-
-
-    if (
-        type === "Ban"
-    ) {
-
-        return "ban";
-
-    }
-
-
-    return "";
-
-}
-
-
-/* =========================================
-   JAZO QO‘SHISH FORMASINI OCHISH
-========================================= */
-
-function openAddPunishment() {
-
-    const form =
-        document.getElementById(
-            "addPunishment"
-        );
-
-
-    form.classList.remove(
-        "hidden"
-    );
-
-
-    document
-        .getElementById(
-            "formTitle"
-        )
-        .textContent =
-        "Yangi jazo qo‘shish";
-
-
-    document
-        .getElementById(
-            "editId"
-        )
-        .value = "";
-
-
-    document
-        .getElementById(
-            "username"
-        )
-        .value = "";
-
-
-    document
-        .getElementById(
-            "reason"
-        )
-        .value = "";
-
-
-    document
-        .getElementById(
-            "punishmentType"
-        )
-        .value =
-        "Ogohlantirish";
-
-
-    document
-        .getElementById(
-            "punishmentDuration"
-        )
-        .value = "";
-
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
+        tbody.appendChild(row);
     });
-
 }
 
 
-/* =========================================
-   FORMNI YOPISH
-========================================= */
+// ======================================================
+// DURATION
+// ======================================================
 
-function closeAddPunishment() {
-
-    document
-        .getElementById(
-            "addPunishment"
-        )
-        .classList.add(
-            "hidden"
-        );
-
-
-    document
-        .getElementById(
-            "editId"
-        )
-        .value = "";
-
-}
-
-
-/* =========================================
-   MUDDAT PLACEHOLDER
-========================================= */
-
-function updateDurationPlaceholder() {
+function updateDuration() {
 
     const type =
-        document
-            .getElementById(
-                "punishmentType"
-            )
-            .value;
+        document.getElementById("punishmentType").value;
 
+    const duration =
+        document.getElementById("duration");
 
-    const input =
-        document
-            .getElementById(
-                "punishmentDuration"
-            );
+    if (type === "Mute 1 soat") {
+        duration.value = "1 soat";
+    }
 
+    else if (type === "Mute 6 soat") {
+        duration.value = "6 soat";
+    }
 
-    input.placeholder =
-        getDefaultDuration(
-            type
-        );
+    else if (type === "Mute 12 soat") {
+        duration.value = "12 soat";
+    }
 
+    else if (type === "Mute 24 soat") {
+        duration.value = "24 soat";
+    }
 
-    /*
-       Admin xohlasa o‘ziga
-       kerakli yozuvni ham kirita oladi.
-    */
-
+    else {
+        duration.value = "Doimiy";
+    }
 }
 
 
-/* =========================================
-   JAZONI SAQLASH
-========================================= */
+// ======================================================
+// EXPIRATION TIME
+// ======================================================
 
-function savePunishment() {
+function getExpiration(type, issuedAt) {
+
+    const date =
+        new Date(issuedAt);
+
+    if (type === "Mute 1 soat") {
+
+        date.setHours(
+            date.getHours() + 1
+        );
+
+        return date.toISOString();
+    }
+
+    if (type === "Mute 6 soat") {
+
+        date.setHours(
+            date.getHours() + 6
+        );
+
+        return date.toISOString();
+    }
+
+    if (type === "Mute 12 soat") {
+
+        date.setHours(
+            date.getHours() + 12
+        );
+
+        return date.toISOString();
+    }
+
+    if (type === "Mute 24 soat") {
+
+        date.setHours(
+            date.getHours() + 24
+        );
+
+        return date.toISOString();
+    }
+
+    return null;
+}
+
+
+// ======================================================
+// ADD / EDIT
+// ======================================================
+
+async function savePunishment(event) {
+
+    event.preventDefault();
+
+    const id =
+        document.getElementById("editId").value;
 
     const username =
-        document
-            .getElementById(
-                "username"
-            )
+        document.getElementById("username")
             .value
-            .trim()
-            .replace(/^@/, "");
-
+            .trim();
 
     const reason =
-        document
-            .getElementById(
-                "reason"
-            )
+        document.getElementById("reason")
             .value
             .trim();
-
 
     const type =
-        document
-            .getElementById(
-                "punishmentType"
-            )
+        document.getElementById("punishmentType")
             .value;
 
+    const duration =
+        document.getElementById("duration")
+            .value;
 
-    const durationInput =
-        document
-            .getElementById(
-                "punishmentDuration"
-            )
+    const moderator =
+        document.getElementById("moderator")
             .value
             .trim();
 
 
-    const editId =
-        document
-            .getElementById(
-                "editId"
-            )
-            .value;
+    if (!username || !reason || !moderator) {
 
-
-    /* VALIDATSIYA */
-
-    if (
-        !username
-    ) {
-
-        alert(
-            "Telegram username kiriting!"
-        );
+        alert("Barcha maydonlarni to‘ldiring.");
 
         return;
     }
 
 
-    if (
-        !reason
-    ) {
+    // EDIT
+    if (id) {
 
-        alert(
-            "Jazo sababini kiriting!"
-        );
-
-        return;
-    }
-
-
-    /* =====================================
-       TAHRIRLASH
-    ===================================== */
-
-    if (
-        editId
-    ) {
-
-        const index =
-            punishments.findIndex(
-                item =>
-                    item.id ===
-                    Number(editId)
+        const oldItem =
+            punishments.find(
+                item => item.id === id
             );
 
+        const issuedAt =
+            oldItem?.issued_at ||
+            new Date().toISOString();
 
-        if (
-            index === -1
-        ) {
+        const expiresAt =
+            getExpiration(
+                type,
+                issuedAt
+            );
+
+        const { error } =
+            await supabaseClient
+                .from("punishments")
+                .update({
+
+                    username: username,
+
+                    reason: reason,
+
+                    punishment_type: type,
+
+                    duration: duration,
+
+                    moderator: moderator,
+
+                    expires_at: expiresAt,
+
+                    status: "active"
+
+                })
+                .eq("id", id);
+
+
+        if (error) {
+
+            console.error(error);
 
             alert(
-                "Jazo topilmadi!"
+                "Tahrirlashda xatolik yuz berdi."
             );
 
             return;
         }
 
+    }
 
-        const old =
-            punishments[index];
+    // ADD
+    else {
 
+        const issuedAt =
+            new Date().toISOString();
 
-        let duration =
-            durationInput ||
-            getDefaultDuration(
-                type
+        const expiresAt =
+            getExpiration(
+                type,
+                issuedAt
             );
 
 
-        const durationMs =
-            getDurationMs(
-                type
+        const { error } =
+            await supabaseClient
+                .from("punishments")
+                .insert({
+
+                    username: username,
+
+                    reason: reason,
+
+                    punishment_type: type,
+
+                    duration: duration,
+
+                    moderator: moderator,
+
+                    issued_at: issuedAt,
+
+                    expires_at: expiresAt,
+
+                    status: "active"
+
+                });
+
+
+        if (error) {
+
+            console.error(error);
+
+            alert(
+                "Jazo qo‘shishda xatolik yuz berdi."
             );
 
-
-        let expiresAt =
-            null;
-
-
-        /*
-            Tahrirlangan mute
-            aynan tahrirlash
-            vaqtida yangi muddat oladi.
-        */
-
-        if (
-            durationMs
-        ) {
-
-            const createdAt =
-                Date.now();
-
-
-            expiresAt =
-                createdAt +
-                durationMs;
-
+            return;
         }
-
-
-        punishments[index] = {
-
-            ...old,
-
-            username,
-
-            reason,
-
-            type,
-
-            duration,
-
-            createdAt:
-                durationMs
-                    ? Date.now()
-                    : old.createdAt,
-
-            expiresAt,
-
-            moderator:
-                "Fazilchik"
-
-        };
-
-
-        saveData();
-
-        closeAddPunishment();
-
-        renderAdminTable();
-
-        renderUserTable();
-
-        updateStats();
-
-        updateReminder();
-
-
-        alert(
-            "✅ Jazo muvaffaqiyatli tahrirlandi!"
-        );
-
-
-        return;
     }
 
 
-    /* =====================================
-       YANGI JAZO
-    ===================================== */
+    resetForm();
 
-
-    /*
-        Ushbu foydalanuvchining
-        mavjud jazo soni.
-    */
-
-    const previousCount =
-        punishments.filter(
-            item =>
-                item.username
-                    .toLowerCase() ===
-                username.toLowerCase()
-        ).length;
-
-
-    const count =
-        previousCount + 1;
-
-
-    let duration =
-        durationInput ||
-        getDefaultDuration(
-            type
-        );
-
-
-    const createdAt =
-        Date.now();
-
-
-    const durationMs =
-        getDurationMs(
-            type
-        );
-
-
-    let expiresAt =
-        null;
-
-
-    if (
-        durationMs
-    ) {
-
-        expiresAt =
-            createdAt +
-            durationMs;
-
-    }
-
-
-    const now =
-        new Date();
-
-
-    const date =
-        String(
-            now.getDate()
-        ).padStart(2, "0")
-        +
-        "."
-        +
-        String(
-            now.getMonth() + 1
-        ).padStart(2, "0")
-        +
-        "."
-        +
-        now.getFullYear()
-        +
-        " "
-        +
-        String(
-            now.getHours()
-        ).padStart(2, "0")
-        +
-        ":"
-        +
-        String(
-            now.getMinutes()
-        ).padStart(2, "0");
-
-
-    punishments.push({
-
-        id:
-            generateId(),
-
-        username,
-
-        reason,
-
-        type,
-
-        duration,
-
-        count,
-
-        date,
-
-        createdAt,
-
-        expiresAt,
-
-        moderator:
-            "Fazilchik"
-
-    });
-
-
-    saveData();
-
-
-    closeAddPunishment();
-
-
-    renderAdminTable();
-
-    renderUserTable();
-
-    updateStats();
-
-    updateReminder();
-
-
-    alert(
-        "✅ Jazo muvaffaqiyatli qo‘shildi!"
-    );
-
+    await loadPunishments();
 }
 
 
-/* =========================================
-   JAZONI TAHRIRLASH
-========================================= */
+// ======================================================
+// EDIT
+// ======================================================
 
 function editPunishment(id) {
 
@@ -1318,91 +790,49 @@ function editPunishment(id) {
                 punishment.id === id
         );
 
-
-    if (
-        !item
-    ) {
-
-        alert(
-            "Jazo topilmadi!"
-        );
-
+    if (!item) {
         return;
     }
 
-
-    document
-        .getElementById(
-            "addPunishment"
-        )
-        .classList.remove(
-            "hidden"
-        );
-
-
-    document
-        .getElementById(
-            "formTitle"
-        )
-        .textContent =
-        "Jazoni tahrirlash";
-
-
-    document
-        .getElementById(
-            "editId"
-        )
-        .value =
+    document.getElementById("editId").value =
         item.id;
 
-
-    document
-        .getElementById(
-            "username"
-        )
-        .value =
+    document.getElementById("username").value =
         item.username;
 
-
-    document
-        .getElementById(
-            "reason"
-        )
-        .value =
+    document.getElementById("reason").value =
         item.reason;
 
+    document.getElementById("punishmentType").value =
+        item.punishment_type;
 
-    document
-        .getElementById(
-            "punishmentType"
-        )
-        .value =
-        item.type;
+    document.getElementById("duration").value =
+        item.duration || "Doimiy";
 
+    document.getElementById("moderator").value =
+        item.moderator;
 
-    document
-        .getElementById(
-            "punishmentDuration"
-        )
-        .value =
-        item.duration === "—"
-            ? ""
-            : item.duration;
+    document.getElementById("formTitle").textContent =
+        "Jazoni tahrirlash";
 
+    document.getElementById("saveText").textContent =
+        "Saqlash";
+
+    document.getElementById("cancelEdit").style.display =
+        "inline-block";
 
     window.scrollTo({
         top: 0,
         behavior: "smooth"
     });
-
 }
 
 
-/* =========================================
-   JAZONI BEKOR QILISH
-========================================= */
+// ======================================================
+// DELETE / CANCEL
+// ======================================================
 
-function cancelPunishment(id) {
+async function deletePunishment(id) {
 
     const item =
         punishments.find(
@@ -1410,357 +840,247 @@ function cancelPunishment(id) {
                 punishment.id === id
         );
 
-
-    if (
-        !item
-    ) {
-
+    if (!item) {
         return;
-
     }
 
-
-    const confirmed =
+    const confirmDelete =
         confirm(
-            `@${item.username} foydalanuvchisining ushbu jazosini bekor qilmoqchimisiz?`
+            `${item.username} uchun jazoni bekor qilmoqchimisiz?`
         );
 
-
-    if (
-        !confirmed
-    ) {
-
+    if (!confirmDelete) {
         return;
-
     }
 
 
-    punishments =
-        punishments.filter(
-            punishment =>
-                punishment.id !== id
+    const { error } =
+        await supabaseClient
+            .from("punishments")
+            .update({
+                status: "cancelled"
+            })
+            .eq("id", id);
+
+
+    if (error) {
+
+        console.error(error);
+
+        alert(
+            "Jazoni bekor qilishda xatolik."
         );
 
+        return;
+    }
 
-    saveData();
-
-
-    renderAdminTable();
-
-    renderUserTable();
-
-    updateStats();
-
-    updateReminder();
-
-
-    alert(
-        "✅ Jazo bekor qilindi!"
-    );
-
+    await loadPunishments();
 }
 
 
-/* =========================================
-   STATISTIKA
-========================================= */
+// ======================================================
+// RESET FORM
+// ======================================================
+
+function resetForm() {
+
+    document.getElementById("punishmentForm").reset();
+
+    document.getElementById("editId").value =
+        "";
+
+    document.getElementById("moderator").value =
+        "Fazilchik";
+
+    document.getElementById("formTitle").textContent =
+        "Jazo qo‘shish";
+
+    document.getElementById("saveText").textContent =
+        "Jazo qo‘shish";
+
+    document.getElementById("cancelEdit").style.display =
+        "none";
+
+    updateDuration();
+}
+
+
+function cancelEdit() {
+
+    resetForm();
+}
+
+
+// ======================================================
+// STATS
+// ======================================================
 
 function updateStats() {
 
-    const total =
-        punishments.length;
-
+    const active =
+        getActivePunishments();
 
     const warnings =
-        punishments.filter(
+        active.filter(
             item =>
-                item.type ===
+                item.punishment_type ===
                 "Ogohlantirish"
         ).length;
 
-
     const mutes =
-        punishments.filter(
+        active.filter(
             item =>
-                item.type.includes(
-                    "Mute"
-                )
+                item.punishment_type
+                    .includes("Mute")
         ).length;
 
-
     const bans =
-        punishments.filter(
+        active.filter(
             item =>
-                item.type ===
+                item.punishment_type ===
                 "Ban"
         ).length;
 
 
-    /* USER */
+    document.getElementById("totalCount")
+        .textContent = active.length;
 
-    const totalUsers =
-        document.getElementById(
-            "totalUsers"
-        );
+    document.getElementById("warningCount")
+        .textContent = warnings;
 
+    document.getElementById("muteCount")
+        .textContent = mutes;
 
-    const warningUsers =
-        document.getElementById(
-            "warningUsers"
-        );
-
-
-    const muteUsers =
-        document.getElementById(
-            "muteUsers"
-        );
+    document.getElementById("banCount")
+        .textContent = bans;
 
 
-    const banUsers =
-        document.getElementById(
-            "banUsers"
-        );
+    document.getElementById("adminTotal")
+        .textContent = active.length;
 
+    document.getElementById("adminWarnings")
+        .textContent = warnings;
 
-    if (
-        totalUsers
-    ) {
+    document.getElementById("adminMutes")
+        .textContent = mutes;
 
-        totalUsers.textContent =
-            total;
-
-    }
-
-
-    if (
-        warningUsers
-    ) {
-
-        warningUsers.textContent =
-            warnings;
-
-    }
-
-
-    if (
-        muteUsers
-    ) {
-
-        muteUsers.textContent =
-            mutes;
-
-    }
-
-
-    if (
-        banUsers
-    ) {
-
-        banUsers.textContent =
-            bans;
-
-    }
-
-
-    /* ADMIN */
-
-    const adminTotal =
-        document.getElementById(
-            "adminTotal"
-        );
-
-
-    const adminWarnings =
-        document.getElementById(
-            "adminWarnings"
-        );
-
-
-    const adminMutes =
-        document.getElementById(
-            "adminMutes"
-        );
-
-
-    const adminBans =
-        document.getElementById(
-            "adminBans"
-        );
-
-
-    if (
-        adminTotal
-    ) {
-
-        adminTotal.textContent =
-            total;
-
-    }
-
-
-    if (
-        adminWarnings
-    ) {
-
-        adminWarnings.textContent =
-            warnings;
-
-    }
-
-
-    if (
-        adminMutes
-    ) {
-
-        adminMutes.textContent =
-            mutes;
-
-    }
-
-
-    if (
-        adminBans
-    ) {
-
-        adminBans.textContent =
-            bans;
-
-    }
-
+    document.getElementById("adminBans")
+        .textContent = bans;
 }
 
 
-/* =========================================
-   3 TA OGOHLANTIRISH ESLATMASI
-========================================= */
+// ======================================================
+// 3 WARNING ALERT
+// ======================================================
 
-function updateReminder() {
+function updateWarningAlert() {
 
-    const reminder =
-        document.getElementById(
-            "reminderText"
-        );
+    const alertBox =
+        document.getElementById("warningAlert");
 
+    const alertText =
+        document.getElementById("warningAlertText");
 
-    if (
-        !reminder
-    ) {
-
+    if (!alertBox || !alertText) {
         return;
-
     }
 
 
-    const users = {};
+    const warningUsers = {};
 
+    punishments.forEach(item => {
 
-    punishments.forEach(
-        item => {
-
-            if (
-                !users[
-                    item.username
-                ]
-            ) {
-
-                users[
-                    item.username
-                ] = 0;
-
-            }
-
-
-            if (
-                item.type ===
-                "Ogohlantirish"
-            ) {
-
-                users[
-                    item.username
-                ]++;
-
-            }
-
+        if (
+            item.punishment_type !==
+            "Ogohlantirish"
+        ) {
+            return;
         }
-    );
+
+        if (!warningUsers[item.username]) {
+
+            warningUsers[item.username] = 0;
+        }
+
+        warningUsers[item.username]++;
+    });
 
 
-    const warningUsers =
-        Object.entries(
-            users
-        ).filter(
-            ([username, count]) =>
-                count >= 3
-        );
+    const reached =
+        Object.entries(warningUsers)
+            .filter(
+                ([username, count]) =>
+                    count >= 3
+            );
 
 
-    if (
-        warningUsers.length === 0
-    ) {
+    if (reached.length === 0) {
 
-        reminder.textContent =
-            "3 yoki undan ko‘p ogohlantirish olgan foydalanuvchilar yo‘q.";
+        alertBox.style.display =
+            "none";
 
         return;
-
     }
 
 
-    reminder.textContent =
-        warningUsers
-            .map(
-                ([username, count]) =>
-                    `@${username} — ${count} ta ogohlantirish`
-            )
-            .join("  •  ");
+    alertBox.style.display =
+        "block";
 
+
+    alertText.textContent =
+        ` ${reached.length} ta foydalanuvchi 3 yoki undan ko‘p ogohlantirishga yetgan.`;
 }
 
 
-/* =========================================
-   HTML XAVFSIZLIGI
-========================================= */
+// ======================================================
+// SESSION
+// ======================================================
 
-function escapeHTML(text) {
+async function checkSession() {
 
-    if (
-        text === null ||
-        text === undefined
-    ) {
+    const {
+        data
+    } = await supabaseClient.auth.getSession();
 
-        return "";
+    if (data.session) {
 
+        showPage("adminPage");
+
+    } else {
+
+        showPage("userPage");
     }
-
-
-    return String(text)
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
 }
 
 
-/* =========================================
-   BOSHLANG‘ICH TEKSHIRUV
-========================================= */
+// ======================================================
+// START
+// ======================================================
 
-removeExpiredPunishments();
+async function startApp() {
 
-updateStats();
+    await loadPunishments();
+
+    await checkSession();
+}
+
+
+// ======================================================
+// AUTO REFRESH
+// ======================================================
+
+setInterval(
+    async function() {
+
+        await loadPunishments();
+
+    },
+    30000
+);
+
+
+// ======================================================
+// RUN
+// ======================================================
+
+startApp();
